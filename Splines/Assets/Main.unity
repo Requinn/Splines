@@ -290,22 +290,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   points:
-  - {x: 0, y: 0, z: 0}
-  - {x: 2, y: 1, z: 0}
-  - {x: 3, y: 0, z: 0}
+  - {x: -0.14637089, y: -1.9199757e-12, z: -0.2119093}
+  - {x: 0.98802304, y: 0.47346637, z: 7.377565}
+  - {x: 3, y: -1, z: -0.14862633}
+  - {x: 4, y: 0, z: 0}
 --- !u!4 &965765416
 Transform:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 965765414}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.000055665038, w: 1}
+  m_LocalPosition: {x: 1.047, y: -0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -0.006}
 --- !u!1 &1602937479
 GameObject:
   m_ObjectHideFlags: 0
