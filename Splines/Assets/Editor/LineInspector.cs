@@ -12,8 +12,8 @@ namespace JLProject.Spline{
 
             //alows the transform of the base object to move the line as well
             Transform handleTransform = line.transform;
-            //allows the rotation to move the line and not the points of the line
-            Quaternion handleRotation = handleTransform.rotation;
+            //allows the rotation to move the points instead of rotating them in place
+            Quaternion handleRotation = Tools.pivotRotation == PivotRotation.Local ? handleTransform.rotation : Quaternion.identity;
 
             //convert the local points into world space
             Vector3 p0 = handleTransform.TransformPoint(line.p0);
@@ -21,7 +21,7 @@ namespace JLProject.Spline{
 
             //draw a line in worldspace
             Handles.color = Color.white;
-            Handles.DrawLine(line.p0, line.p1);    
+            Handles.DrawLine(p0, p1);    
             
             //apply any changes made to the handles back to the line itself
             EditorGUI.BeginChangeCheck();
