@@ -18,7 +18,7 @@ namespace JLProject.Spline {
 
         //used for dummy points to avoid having the transform markers everywhere
         private const float handleSize = 0.04f;
-        private const float pickSize = 0.0f;
+        private const float pickSize = 0.06f;
 
         private int selectedIndex = -1;
 
@@ -29,7 +29,7 @@ namespace JLProject.Spline {
 
             //draw and get the points in the curve
             Vector3 p0 = ShowPoint(0);
-            for (int i = 1; i < spline.points.Length; i += 3){
+            for (int i = 1; i < spline.ControlPointCount; i += 3){
                 Vector3 p1 = ShowPoint(i);
                 Vector3 p2 = ShowPoint(i + 1);
                 Vector3 p3 = ShowPoint(i + 2);
@@ -51,8 +51,12 @@ namespace JLProject.Spline {
         /// adds a button to add a new curve
         /// </summary>
         public override void OnInspectorGUI(){
-            DrawDefaultInspector();
             spline = target as BezierSpline;
+            //we don't want to be accessing the array directly in our inspector, so we remove the default call and call the inspector for each point
+            if(selectedIndex >= 0 && selectedIndex < spline.ControlPointCount)
+            {
+                DrawSelectedPointInspector();
+            }
             if (GUILayout.Button("Add Curve")){
                 Undo.RecordObject(spline, "Add Curve");
                 spline.AddCurve();
@@ -60,6 +64,19 @@ namespace JLProject.Spline {
             }
         }
 
+        /// <summary>
+        /// Draw a custom inspector for the selected point in the curve
+        /// </summary>
+        private void DrawSelectedPointInspector(){
+            GUILayout.Label("Selected Point");
+            EditorGUI.BeginChangeCheck();
+            Vector3 point = EditorGUILayout.Vector3Field("Position", spline.GetControlpoint(selectedIndex));
+            if (EditorGUI.EndChangeCheck()){
+                Undo.RecordObject(spline, "Move Point");
+                EditorUtility.SetDirty(spline);
+                spline.SetControlPoint(selectedIndex, handleTransform.InverseTransformPoint(point));
+            }
+        }
         /// <summary>
         /// Draws the direction vectors of the bezier
         /// </summary>
@@ -79,12 +96,13 @@ namespace JLProject.Spline {
         /// <param name="index"></param>
         /// <returns></returns>
         private Vector3 ShowPoint(int index) {
-            Vector3 point = handleTransform.TransformPoint(spline.points[index]); //get the point at index
+            Vector3 point = handleTransform.TransformPoint(spline.GetControlpoint(index)); //get the point at index
 
             //use dummy points to reduce visual clutter of regular transform markers
             Handles.color = Color.white;
             if (Handles.Button(point, handleRotation, handleSize, pickSize, Handles.DotHandleCap)){
                 selectedIndex = index;
+                Repaint(); //refresh on selection
             }
             if (selectedIndex == index){
                 EditorGUI.BeginChangeCheck();
@@ -92,7 +110,7 @@ namespace JLProject.Spline {
                 if (EditorGUI.EndChangeCheck()){
                     Undo.RecordObject(spline, "Move Point");
                     EditorUtility.SetDirty(spline);
-                    spline.points[index] = handleTransform.InverseTransformPoint(point);
+                    spline.SetControlPoint(index, handleTransform.InverseTransformPoint(point));
                 }
             }
             return point;

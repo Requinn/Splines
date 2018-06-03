@@ -7,8 +7,33 @@ namespace JLProject.Spline {
     /// A class to describe a bezier curve
     /// </summary>
     public class BezierSpline : MonoBehaviour {
-        public Vector3[] points;
+        [SerializeField]
+        private Vector3[] points;
 
+        /// <summary>
+        /// gets number of controllable points in the spline
+        /// </summary>
+        public int ControlPointCount{
+            get{ return points.Length; }
+        }
+
+        /// <summary>
+        /// gets a point at index
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public Vector3 GetControlpoint(int index){
+            return points[index];
+        }
+
+        /// <summary>
+        /// assign a new point to the index
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="point"></param>
+        public void SetControlPoint(int index, Vector3 point){
+            points[index] = point;
+        }
         /// <summary>
         ///  Gets the number of curves in the spline
         /// </summary>
