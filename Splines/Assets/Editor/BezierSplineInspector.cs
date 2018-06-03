@@ -69,12 +69,24 @@ namespace JLProject.Spline {
         /// </summary>
         private void DrawSelectedPointInspector(){
             GUILayout.Label("Selected Point");
+            //point
             EditorGUI.BeginChangeCheck();
             Vector3 point = EditorGUILayout.Vector3Field("Position", spline.GetControlpoint(selectedIndex));
             if (EditorGUI.EndChangeCheck()){
                 Undo.RecordObject(spline, "Move Point");
                 EditorUtility.SetDirty(spline);
                 spline.SetControlPoint(selectedIndex, handleTransform.InverseTransformPoint(point));
+            }
+
+            //mode
+            EditorGUI.BeginChangeCheck();
+            BezierPointMode.BezierControlPointMode mode =
+                (BezierPointMode.BezierControlPointMode) EditorGUILayout.EnumPopup("Mode",
+                    spline.GetControlPointMode(selectedIndex));
+            if (EditorGUI.EndChangeCheck()){
+                Undo.RecordObject(spline, "Change Point Mode");
+                spline.SetControlPointmode(selectedIndex, mode);
+                EditorUtility.SetDirty(spline);
             }
         }
         /// <summary>
@@ -90,6 +102,13 @@ namespace JLProject.Spline {
                 Handles.DrawLine(point, point + spline.GetDirection(i / (float)steps * directionScale));
             }
         }
+        //used to color code modes on points
+        private static Color[] modeColor = {
+            Color.white,
+            Color.yellow,
+            Color.cyan
+        };
+
         /// <summary>
         /// show a point at the index in the editor
         /// </summary>
@@ -99,7 +118,7 @@ namespace JLProject.Spline {
             Vector3 point = handleTransform.TransformPoint(spline.GetControlpoint(index)); //get the point at index
 
             //use dummy points to reduce visual clutter of regular transform markers
-            Handles.color = Color.white;
+            Handles.color = modeColor[(int) spline.GetControlPointMode(index)];
             if (Handles.Button(point, handleRotation, handleSize, pickSize, Handles.DotHandleCap)){
                 selectedIndex = index;
                 Repaint(); //refresh on selection

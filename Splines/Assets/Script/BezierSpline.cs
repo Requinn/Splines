@@ -1,5 +1,6 @@
 ﻿using System;
-using System.Runtime.InteropServices.ComTypes;
+using System.Xml.Schema;
+using UnityEditor;
 using UnityEngine;
 
 namespace JLProject.Spline {
@@ -10,6 +11,7 @@ namespace JLProject.Spline {
         [SerializeField]
         private Vector3[] points;
 
+        [SerializeField] private BezierPointMode.BezierControlPointMode[] modes;
         /// <summary>
         /// gets number of controllable points in the spline
         /// </summary>
@@ -32,7 +34,77 @@ namespace JLProject.Spline {
         /// <param name="index"></param>
         /// <param name="point"></param>
         public void SetControlPoint(int index, Vector3 point){
+            //if we select a middle point, make sure it adjusts the two other points connected to it as well
+            //fixes the point left of middle staying fixed when adjusting middle, allowing to adjust the position of that curve specifically
+            if (index % 3 == 0) {
+                Vector3 delta = point - points[index];
+                if (index > 0) {
+                    points[index - 1] += delta;
+                }
+                if (index + 1 < points.Length){
+                    points[index + 1] += delta;
+                }
+            }
             points[index] = point;
+            EnforceMode(index);
+        }
+        /// 
+        /// <summary>
+        /// Get the mode inbetween a curve, so we add one and divide by three
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public BezierPointMode.BezierControlPointMode GetControlPointMode(int index){
+            return modes[(index + 1) / 3];
+        }
+
+        /// <summary>
+        /// Set a mode for the point 
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="mode"></param>
+        public void SetControlPointmode(int index, BezierPointMode.BezierControlPointMode mode){
+            modes[(index + 1) / 3] = mode;
+            EnforceMode(index);
+        }
+
+        /// <summary>
+        /// Enforces the three types of point adjustements:
+        /// Free: any point anywhere
+        /// Aligned: Point opposite maintains distance while the moved points' distance is scaled.
+        /// Mirrored: Changes made to adjusted point is reflected in the opposite point
+        /// </summary>
+        /// <param name="index"></param>
+        private void EnforceMode(int index){
+            int modeIndex = (index + 1) / 3;
+            BezierPointMode.BezierControlPointMode mode = modes[modeIndex];
+            //check if we should be doing anything
+            if (mode == BezierPointMode.BezierControlPointMode.Free || modeIndex == 0 || modeIndex == modeIndex - 1){
+                return;
+            }
+
+            //calculate where the points we are adjusting are at
+            int middleIndex = modeIndex * 3;
+            int fixedIndex, enforcedIndex;
+            //if we have the middle mpoit selected, leave the previous alone and enforce onto the other side
+            if (index <= middleIndex){
+                fixedIndex = middleIndex - 1;
+                enforcedIndex = middleIndex + 1;
+            }
+            //if we don't, keep the one we're at fixed and change the opposite side
+            else{
+                fixedIndex = middleIndex + 1;
+                enforcedIndex = middleIndex - 1;
+            }
+            //Mirrored.
+            Vector3 middle = points[middleIndex];
+            Vector3 enforcedTangent = middle - points[fixedIndex]; //get the vector from middle to fixed (fixed - middle), then invert it
+            //if we are aligned, make sure the new tangent is the same length as the old one
+            if (mode == BezierPointMode.BezierControlPointMode.Aligned){
+                enforcedTangent = enforcedTangent.normalized * Vector3.Distance(middle, points[enforcedIndex]);//normalize, then multiply by distance of middle and old enforced point
+            }
+            points[enforcedIndex] = middle + enforcedTangent; //then add it to the middle to get the point
+
         }
         /// <summary>
         ///  Gets the number of curves in the spline
@@ -50,6 +122,11 @@ namespace JLProject.Spline {
                 new Vector3(2f, 0f, 0f),
                 new Vector3(3f, 0f, 0f),
                 new Vector3(4f, 0f, 0f)
+            };
+            //reset with only two, since we are getting control modes *between* the curves
+            modes = new BezierPointMode.BezierControlPointMode[]{
+                BezierPointMode.BezierControlPointMode.Free,
+                BezierPointMode.BezierControlPointMode.Free
             };
         }
 
@@ -118,6 +195,13 @@ namespace JLProject.Spline {
             points[points.Length - 2] = point;
             point.x += 1f;
             points[points.Length - 1] = point;
+
+            //add a new mode to the created nodes
+            Array.Resize(ref modes, modes.Length + 1);
+            modes[modes.Length - 1] = modes[modes.Length - 2];
+
+            //enforce constraints whenever we add a new curve
+            EnforceMode(points.Length - 4);
         }
     }
 }
