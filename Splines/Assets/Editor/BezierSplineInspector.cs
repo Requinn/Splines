@@ -26,7 +26,7 @@ namespace JLProject.Spline {
             spline = target as BezierSpline;
             handleTransform = spline.transform;
             handleRotation = Tools.pivotRotation == PivotRotation.Local ? handleTransform.rotation : Quaternion.identity;
-
+            
             //draw and get the points in the curve
             Vector3 p0 = ShowPoint(0);
             for (int i = 1; i < spline.ControlPointCount; i += 3){
@@ -52,6 +52,14 @@ namespace JLProject.Spline {
         /// </summary>
         public override void OnInspectorGUI(){
             spline = target as BezierSpline;
+
+            EditorGUI.BeginChangeCheck();
+            bool loop = EditorGUILayout.Toggle("Loop", spline.Loop);
+            if (EditorGUI.EndChangeCheck()){
+                Undo.RecordObject(spline, "Toggle Loop");
+                EditorUtility.SetDirty(spline);
+                spline.Loop = loop;
+            }
             //we don't want to be accessing the array directly in our inspector, so we remove the default call and call the inspector for each point
             if(selectedIndex >= 0 && selectedIndex < spline.ControlPointCount)
             {
@@ -117,9 +125,15 @@ namespace JLProject.Spline {
         private Vector3 ShowPoint(int index) {
             Vector3 point = handleTransform.TransformPoint(spline.GetControlpoint(index)); //get the point at index
 
+            //make our spline start twice as big so we know where it is
+            float size = HandleUtility.GetHandleSize(point);
+            if (index == 0){
+                size *= 2f;
+            }
+
             //use dummy points to reduce visual clutter of regular transform markers
             Handles.color = modeColor[(int) spline.GetControlPointMode(index)];
-            if (Handles.Button(point, handleRotation, handleSize, pickSize, Handles.DotHandleCap)){
+            if (Handles.Button(point, handleRotation, handleSize, size * pickSize, Handles.DotHandleCap)){
                 selectedIndex = index;
                 Repaint(); //refresh on selection
             }

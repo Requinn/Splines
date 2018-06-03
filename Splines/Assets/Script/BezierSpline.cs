@@ -12,6 +12,21 @@ namespace JLProject.Spline {
         private Vector3[] points;
 
         [SerializeField] private BezierPointMode.BezierControlPointMode[] modes;
+
+        [SerializeField] private bool loop;
+        public bool Loop{
+            get{
+                return loop;
+            }
+            set{
+                loop = value;
+                if (value){
+                    modes[modes.Length - 1] = modes[0]; //make sure our modes are enforced by applying the mode of the first node to the last node
+                    SetControlPoint(0, points[0]); //set the last node equal to the first node
+                }
+            }
+        }
+
         /// <summary>
         /// gets number of controllable points in the spline
         /// </summary>
@@ -37,17 +52,33 @@ namespace JLProject.Spline {
             //if we select a middle point, make sure it adjusts the two other points connected to it as well
             //fixes the point left of middle staying fixed when adjusting middle, allowing to adjust the position of that curve specifically
             if (index % 3 == 0) {
-                Vector3 delta = point - points[index];
-                if (index > 0) {
-                    points[index - 1] += delta;
+                Vector3 delta = point - points[index]; //adjustments we make to a point are applied to all related/connected points
+                //make sure we wrap our changes properly when adjusting edges in a loop
+                if (loop){
+                    if (index == 0){
+                        points[1] += delta;
+                        points[points.Length - 2] += delta;
+                        points[points.Length - 1] = point;
+                    }
+                    if (index == points.Length - 1){
+                        points[0] = point;
+                        points[1] += delta;
+                        points[index - 1] += delta;
+                    }
                 }
-                if (index + 1 < points.Length){
-                    points[index + 1] += delta;
+                else{
+                    if (index > 0){
+                        points[index - 1] += delta;
+                    }
+                    if (index + 1 < points.Length){
+                        points[index + 1] += delta;
+                    }
                 }
             }
             points[index] = point;
             EnforceMode(index);
         }
+
         /// 
         /// <summary>
         /// Get the mode inbetween a curve, so we add one and divide by three
@@ -64,7 +95,17 @@ namespace JLProject.Spline {
         /// <param name="index"></param>
         /// <param name="mode"></param>
         public void SetControlPointmode(int index, BezierPointMode.BezierControlPointMode mode){
-            modes[(index + 1) / 3] = mode;
+            int modeIndex = (index + 1) / 3;
+            modes[modeIndex] = mode;
+            //make sure the first and last modes are equal to each other in case we are looping
+            if (loop){
+                if (modeIndex == 0){
+                    modes[modes.Length - 1] = mode;
+                }
+                else if (modeIndex == modes.Length - 1){
+                    modes[0] = mode;
+                }
+            }
             EnforceMode(index);
         }
 
@@ -79,7 +120,7 @@ namespace JLProject.Spline {
             int modeIndex = (index + 1) / 3;
             BezierPointMode.BezierControlPointMode mode = modes[modeIndex];
             //check if we should be doing anything
-            if (mode == BezierPointMode.BezierControlPointMode.Free || modeIndex == 0 || modeIndex == modeIndex - 1){
+            if (mode == BezierPointMode.BezierControlPointMode.Free || !loop && (modeIndex == 0 || modeIndex == modeIndex - 1)){
                 return;
             }
 
@@ -89,12 +130,24 @@ namespace JLProject.Spline {
             //if we have the middle mpoit selected, leave the previous alone and enforce onto the other side
             if (index <= middleIndex){
                 fixedIndex = middleIndex - 1;
+                if (fixedIndex < 0){
+                    fixedIndex = points.Length - 2;
+                }
                 enforcedIndex = middleIndex + 1;
+                if (enforcedIndex >= points.Length){
+                    enforcedIndex = 1;
+                }
             }
             //if we don't, keep the one we're at fixed and change the opposite side
             else{
                 fixedIndex = middleIndex + 1;
+                if (fixedIndex > points.Length){
+                    fixedIndex = 1;
+                }
                 enforcedIndex = middleIndex - 1;
+                if (enforcedIndex < 0){
+                    enforcedIndex = points.Length - 2;
+                }
             }
             //Mirrored.
             Vector3 middle = points[middleIndex];
@@ -202,6 +255,13 @@ namespace JLProject.Spline {
 
             //enforce constraints whenever we add a new curve
             EnforceMode(points.Length - 4);
+
+            //special case if the spline loops
+            if (loop){
+                points[points.Length - 1] = points[0]; //set the last point we generate to the first point of the spline
+                modes[modes.Length - 1] = modes[0];
+                EnforceMode(0);
+            }
         }
     }
 }
